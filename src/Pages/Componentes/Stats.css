@@ -1,0 +1,82 @@
+/* SECTION */
+.stats-section {
+  padding: clamp(50px, 10vw, 100px) 15px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* CONTAINER */
+.stats-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 10px;
+}
+
+/* GRID */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 25px;
+}
+
+/* Small devices */
+@media (min-width: 480px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Tablets */
+@media (min-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ITEM */
+.stat-item {
+  text-align: center;
+  padding: 10px;
+}
+
+/* Desktop alignment */
+@media (min-width: 768px) {
+  .stat-item {
+    text-align: left;
+  }
+}
+
+/* VALUE */
+.stat-value {
+  font-size: clamp(28px, 6vw, 48px);
+  font-weight: bold;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+}
+
+/* LABEL */
+.stat-label {
+  font-size: clamp(10px, 2vw, 12px);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+
+/* EXTRA SMALL */
+@media (max-width: 400px) {
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+  }
+}

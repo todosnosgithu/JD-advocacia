@@ -1,0 +1,139 @@
+/* BASE */
+.journey {
+  position: relative;
+  padding: 10px 0;
+}
+
+/* LINHA */
+.journey-line {
+  position: absolute;
+  left: 14px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+
+.journey-list {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+
+.journey-item {
+  position: relative;
+  padding-left: 45px;
+}
+
+/* DOT */
+.journey-dot {
+  position: absolute;
+  left: 10px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  background: var(--primary);
+  border-radius: 50%;
+}
+
+/* HEADER */
+.journey-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.journey-header h4 {
+  font-size: clamp(14px, 2vw, 16px);
+  font-weight: 600;
+}
+
+.journey-header span {
+  font-size: clamp(11px, 1.8vw, 12px);
+  color: var(--primary);
+}
+
+/* TEXTO */
+.journey-content p {
+  font-size: clamp(13px, 2vw, 14px);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* TABLET */
+@media (min-width: 600px) {
+  .journey-line {
+    left: 20px;
+  }
+
+  .journey-item {
+    padding-left: 60px;
+  }
+
+  .journey-dot {
+    left: 16px;
+  }
+}
+
+/* DESKTOP - timeline mais espaçada */
+@media (min-width: 992px) {
+  .journey {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .journey-list {
+    gap: 20px;
+  }
+
+  .journey-line {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .journey-item {
+    width: 50%;
+    padding-left: 0;
+  }
+
+  /* alternar lados */
+  .journey-item:nth-child(odd) {
+    align-self: flex-start;
+    padding-right: 40px;
+    text-align: right;
+  }
+
+  .journey-item:nth-child(even) {
+    align-self: flex-end;
+    padding-left: 30px;
+    text-align: left;
+  }
+
+  .journey-dot {
+    left: 78%;
+    transform: translateY(20%);
+  }
+
+  .journey-header {
+    justify-content: inherit;
+  }
+}
+
+/* EXTRA SMALL */
+@media (max-width: 400px) {
+  .journey-item {
+    padding-left: 40px;
+  }
+
+  .journey-header h4 {
+    font-size: 13px;
+  }
+
+  .journey-content p {
+    font-size: 12px;
+  }
+}

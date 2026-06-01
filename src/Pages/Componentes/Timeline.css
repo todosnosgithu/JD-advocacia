@@ -1,0 +1,135 @@
+/* CONTAINER */
+.timeline {
+  position: relative;
+  padding: 10px 0;
+}
+
+/* LINHA */
+.timeline-line {
+  position: absolute;
+  left: 14px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+/* LISTA */
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(30px, 6vw, 50px);
+}
+
+/* ITEM */
+.timeline-item {
+  position: relative;
+  padding-left: 50px;
+}
+
+/* DOT */
+.timeline-dot {
+  position: absolute;
+  left: 10px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  background: var(--primary);
+  border-radius: 50%;
+}
+
+/* YEAR */
+.timeline-year {
+  font-size: clamp(10px, 2vw, 12px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+/* TITLE */
+.timeline-title {
+  font-size: clamp(16px, 3vw, 20px);
+  font-weight: 600;
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+/* DESC */
+.timeline-desc {
+  font-size: clamp(13px, 2vw, 14px);
+  color: var(--muted);
+  line-height: 1.7;
+  max-width: 100%;
+}
+
+/* TABLET */
+@media (min-width: 600px) {
+  .timeline-line {
+    left: 20px;
+  }
+
+  .timeline-item {
+    padding-left: 60px;
+  }
+
+  .timeline-dot {
+    left: 16px;
+  }
+}
+
+/* DESKTOP - layout profissional */
+@media (min-width: 992px) {
+  .timeline {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .timeline-line {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .timeline-item {
+    width: 50%;
+    padding: 0;
+  }
+
+  /* lado esquerdo */
+  .timeline-item:nth-child(odd) {
+    align-self: flex-start;
+    padding-right: 50px;
+    text-align: right;
+  }
+
+  /* lado direito */
+  .timeline-item:nth-child(even) {
+    align-self: flex-end;
+    padding-left: 50px;
+    text-align: left;
+  }
+
+  /* DOT no centro */
+  .timeline-dot {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .timeline-desc {
+    max-width: 400px;
+  }
+}
+
+/* EXTRA SMALL */
+@media (max-width: 400px) {
+  .timeline-item {
+    padding-left: 40px;
+  }
+
+  .timeline-title {
+    font-size: 15px;
+  }
+
+  .timeline-desc {
+    font-size: 12px;
+  }
+}

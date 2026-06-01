@@ -1,0 +1,106 @@
+/* CONTAINER */
+.philosophy {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(20px, 5vw, 30px);
+}
+
+/* TABS */
+.philosophy-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.philosophy-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* BUTTON */
+.tab {
+  position: relative;
+  background: transparent;
+  border: none;
+  padding: 10px 14px;
+  font-size: clamp(10px, 2vw, 12px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tab:hover {
+  color: var(--primary);
+}
+
+/* ACTIVE */
+.tab.active {
+  color: var(--primary);
+}
+
+/* UNDERLINE */
+.underline {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary);
+}
+
+/* CONTENT */
+.philosophy-content h3 {
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.philosophy-content p {
+  font-size: clamp(14px, 2.5vw, 16px);
+  color: var(--muted);
+  line-height: 1.7;
+  max-width: 100%;
+}
+
+/* TABLET */
+@media (min-width: 768px) {
+  .philosophy-tabs {
+    justify-content: flex-start;
+  }
+
+  .tab {
+    padding: 12px 18px;
+  }
+
+  .philosophy-content p {
+    max-width: 600px;
+  }
+}
+
+/* DESKTOP */
+@media (min-width: 1024px) {
+  .philosophy {
+    gap: 30px;
+  }
+}
+
+/* EXTRA SMALL */
+@media (max-width: 400px) {
+  .tab {
+    padding: 8px 12px;
+    font-size: 10px;
+  }
+
+  .philosophy-content h3 {
+    font-size: 18px;
+  }
+
+  .philosophy-content p {
+    font-size: 13px;
+  }
+}

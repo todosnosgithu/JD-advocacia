@@ -1,0 +1,649 @@
+@media (min-width: 1024px) {
+  .recruit-left {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 0 60px;
+  }
+}
+
+/* BUTTON */
+.recruit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--primary);
+  color: white;
+  padding: 14px 28px;
+  text-decoration: none;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: 0.3s;
+}
+
+/* IMAGE */
+.recruit-image {
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+}
+
+.recruit-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+
+.recruit-benefits span {
+  font-style: italic;
+}
+
+
+
+
+
+/* src/Recrutamento.css */
+.recrutamento {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #f0f2f5 100%);
+}
+
+/* Loading State */
+.recrutamento-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #f0f2f5 100%);
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================ */
+/* NOTIFICAÇÃO DE VAGAS (VAGAS-NOTIFICATION)    */
+/* ============================================ */
+
+.vagas-notification {
+  position: fixed;
+  top: 90px;
+  right: 20px;
+  z-index: 1000;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  max-width: 380px;
+  width: calc(100% - 40px);
+  border-left: 4px solid #ff9800;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  position: relative;
+}
+
+.vaga-icon {
+  flex-shrink: 0;
+  color: #ff9800;
+  animation: bellRing 1s ease infinite;
+}
+
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(15deg); }
+  20%, 40%, 60%, 80% { transform: rotate(-15deg); }
+}
+
+.notification-text {
+  flex: 1;
+}
+
+.notification-text strong {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.notification-text p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  margin: 0;
+}
+
+.notification-btn {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notification-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 152, 0, 0.3);
+}
+
+.notification-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.notification-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Responsivo para notificação */
+@media (max-width: 768px) {
+  .vagas-notification {
+    top: 90px;
+    left: 20px;
+    max-width: auto;
+  }
+  
+  .notification-content {
+    flex-wrap: wrap;
+  }
+  
+  .notification-btn {
+    width: auto;
+    justify-content: center;
+    margin-top: 8px;
+  }
+}
+
+
+/* SECÇÃO DE VAGAS (RECRUIT-VAGAS) */
+
+
+.recruit-vagas {
+  padding: 60px 40px;
+  background: white;
+  margin: 40px 0;
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+}
+
+.recruit-vagas h2 {
+  font-size: 2rem;
+  color: #1a1a2e;
+  margin-bottom: 40px;
+  text-align: center;
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  font-weight: 800;
+}
+
+.recruit-vagas h2 span {
+  background: var(--secondary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+}
+
+.recruit-vagas h2::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 3px;
+  background: var(--secondary-hover);
+  border-radius: 3px;
+}
+
+.vagas-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
+}
+
+.vaga-card {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  transition: all 0.3s ease;
+  border: 1px solid #e0e0e0;
+  position: relative;
+  overflow: hidden;
+}
+
+.vaga-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgb(0, 81, 255);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.vaga-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  border-color: transparent;
+}
+
+.vaga-card:hover::before {
+  transform: scaleX(1);
+}
+
+.vaga-card h3 {
+  font-size: 1.3rem;
+  color: #1a1a2e;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.vaga-card p {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.vaga-meta {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.vaga-meta span {
+  font-size: 12px;
+  color: #888;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f8f9fa;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.vaga-meta span::before {
+  content: "📍";
+  font-size: 10px;
+}
+
+.vaga-meta span:last-child::before {
+  content: "⏰";
+}
+
+.vaga-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #1d45f8;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 0;
+  transition: all 0.3s;
+  text-decoration: none;
+}
+
+.vaga-link:hover {
+  gap: 12px;
+  color: #f57c00;
+}
+
+/* BENEFITS SECTION   */
+
+
+.recruit-benefits {
+  padding: 40px;
+  background: linear-gradient(135deg, #f8f9fa, #fff);
+  border-radius: 24px;
+  margin: 40px 0;
+}
+
+.recruit-benefits h2 {
+  font-size: 2rem;
+  color: #1a1a2e;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.recruit-benefits h2 span {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.benefits-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: white;
+  border-radius: 16px;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.benefit-item:hover {
+  transform: translateX(8px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.benefit-number {
+  font-size: 24px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  min-width: 50px;
+}
+
+.benefit-text {
+  color: #444;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* JOURNEY SECTION  */
+
+
+.recruit-journey {
+  padding: 40px;
+  background: white;
+  border-radius: 24px;
+  margin: 40px 0;
+}
+
+.recruit-journey h2 {
+  font-size: 2rem;
+  color: #1a1a2e;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+
+
+
+/* HERO SECTION   */
+
+.recruit-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 80vh;
+}
+
+.recruit-left {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+}
+
+.recruit-content {
+  max-width: 500px;
+  color: white;
+}
+
+.detalhes {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: #ff9800;
+  margin-bottom: 20px;
+}
+
+.recruit-title {
+  font-size: 3rem;
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+
+.recruit-title span {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.recruit-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.recruit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 40px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-decoration: none;
+}
+
+.recruit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(255, 152, 0, 0.3);
+  gap: 15px;
+}
+
+.recruit-right {
+  background: white;
+  padding: 60px 40px;
+  overflow-y: auto;
+}
+
+.recruit-image {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.recruit-image img {
+  max-width: 100%;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+
+/* RESPONSIVE  */
+
+@media (max-width: 968px) {
+  .recruit-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .recruit-left {
+    min-height: 60vh;
+  }
+  
+  .recruit-title {
+    font-size: 2.2rem;
+  }
+  
+  .vagas-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .benefits-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .recruit-vagas,
+  .recruit-benefits,
+  .recruit-journey {
+    padding: 30px 20px;
+  }
+  
+  .recruit-vagas h2,
+  .recruit-benefits h2,
+  .recruit-journey h2 {
+    font-size: 1.5rem;
+  }
+  
+  .vaga-card h3 {
+    font-size: 1.1rem;
+  }
+  
+  .benefit-item {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .recruit-left {
+    padding: 40px 20px;
+  }
+  
+  .recruit-right {
+    padding: 40px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .recruit-title {
+    font-size: 1.8rem;
+  }
+  
+  .vaga-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .notification-text strong {
+    font-size: 12px;
+  }
+}
+
+
+/* Indicador de vagas disponíveis */
+.vagas-indicator {
+  margin: 2rem 0;
+  padding: 1rem;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.indicator-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: #ffd700;
+  font-size: 0.9rem;
+}
+
+.indicator-btn {
+  background: rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  color: #ffd700;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.indicator-btn:hover {
+  background: rgba(255, 215, 0, 0.3);
+  transform: scale(1.05);
+}
+
+/* Seção de vagas com animação */
+.recruit-vagas {
+  margin: 1rem 0 2rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 20px;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .vagas-indicator {
+    margin: 1.5rem 0;
+    padding: 0.75rem;
+  }
+  
+  .indicator-content {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .indicator-btn {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}

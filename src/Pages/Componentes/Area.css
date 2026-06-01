@@ -1,0 +1,79 @@
+/* CONTAINER */
+.practice {
+  padding: clamp(60px, 10vw, 100px) 15px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* GRID */
+.practice-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+  border: 1px solid var(--border);
+  background: var(--border);
+}
+
+/* Tablet */
+@media (min-width: 640px) {
+  .practice-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .practice-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* CARD */
+.practice-card {
+  background: #fff;
+  padding: clamp(20px, 4vw, 40px);
+  cursor: default;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ICON */
+.practice-icon {
+  color: var(--secondary);
+  margin-bottom: 15px;
+  transition: transform 0.3s ease;
+}
+
+/* TITLE */
+.practice-card h3 {
+  font-size: clamp(16px, 2.5vw, 18px);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* TEXT */
+.practice-card p {
+  font-size: clamp(13px, 2vw, 14px);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* HOVER */
+.practice-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.practice-card:hover .practice-icon {
+  transform: translateX(4px);
+}
+
+/* MOBILE IMPROVEMENTS */
+@media (max-width: 480px) {
+  .practice {
+    padding: 50px 12px;
+  }
+
+  .practice-card {
+    padding: 18px;
+  }
+}
