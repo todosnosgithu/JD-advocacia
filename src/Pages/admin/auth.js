@@ -58,30 +58,15 @@ export const auth = {
 
   // Obter usuário atual
   getCurrentUser: () => {
-    // src/Pages/admin/auth.js - Adicione esta função auxiliar
-
-    // Verificar credenciais (para login offline)
-    verifyCredentials: (email, password) => {
-      const adminSettings = JSON.parse(localStorage.getItem("admin_settings") || "{}");
-      const storedPassword = adminSettings.admin?.password || "admin123";
-      const storedEmail = "admin@advoca.com";
-
-      // Verificar se o email está correto e a senha corresponde
-      if (email === storedEmail && password === storedPassword) {
-        // Criar token mockado
-        const token = "mock_token_" + Date.now();
-        const user = {
-          id: 1,
-          nome: "Administrador",
-          email: storedEmail,
-          cargo: "admin"
-        };
-        auth.setLoginData(token, user);
-        return { success: true, token, user };
+    const user = localStorage.getItem(USER_KEY);
+    if (user) {
+      try {
+        return JSON.parse(user);
+      } catch (e) {
+        return null;
       }
-
-      return { success: false, message: "Credenciais inválidas" };
     }
+    return null;
   },
 
   // Salvar dados de login
@@ -90,17 +75,5 @@ export const auth = {
     localStorage.setItem(USER_KEY, JSON.stringify(user || DEFAULT_ADMIN));
     localStorage.setItem(LOGGED_IN_KEY, "true");
     localStorage.setItem(LOGIN_TIME_KEY, Date.now().toString());
-  },
-
-  // Login mockado (para quando servidor está offline)
-  mockLogin: (email, senha) => {
-    // Credenciais padrão
-    if (email === "admin@advoca.com" && senha === "admin123") {
-      const token = "mock_token_" + Date.now();
-      const user = DEFAULT_ADMIN;
-      auth.setLoginData(token, user);
-      return { success: true, token, user };
-    }
-    return { success: false, message: "Credenciais inválidas" };
   }
 };

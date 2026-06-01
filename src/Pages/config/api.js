@@ -1,9 +1,8 @@
-// src/config/api.js
 // ============================================
 // 🚀 CONFIGURAÇÃO DA API - MUDE AQUI PARA ALTERAR
 // ============================================
 
-export const API_BASE_URL = "http://192.168.1.101:3000/api";
+export const API_BASE_URL = "http://192.168.1.101:3000";
 
 // Para desenvolvimento local:
 // export const API_BASE_URL = "http://localhost:3000/api";

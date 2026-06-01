@@ -1,4 +1,3 @@
-// src/Pages/admin/AdminLogin.jsx
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Eye, EyeOff, Shield, Mail, Loader2 } from "lucide-react";
@@ -69,7 +68,6 @@ export default function AdminLogin({ onLogin }) {
           </div>
           <h1>Painel Administrativo</h1>
           <p>Fulano Advocacia</p>
-          <p className="demo-credentials">Demo: admin@advoca.com / admin123</p>
         </div>
 
         <form onSubmit={handleSubmit}>
