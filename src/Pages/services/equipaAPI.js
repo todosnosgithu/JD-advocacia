@@ -42,6 +42,29 @@ const saveToLocalStorage = (data) => {
   }
 };
 
+// Função auxiliar para obter URL completa da foto
+const getFotoUrlCompleta = (foto) => {
+  if (!foto) return null;
+  
+  // Se já for URL completa
+  if (foto.startsWith('http://') || foto.startsWith('https://')) {
+    return foto;
+  }
+  
+  // Se for caminho relativo com /uploads
+  if (foto.startsWith('/uploads')) {
+    return `${API_BASE_URL}${foto}`;
+  }
+  
+  // Se for apenas o nome do arquivo ou caminho sem barra
+  if (!foto.startsWith('/')) {
+    return `${API_BASE_URL}/uploads/equipa/${foto}`;
+  }
+  
+  // Outros casos
+  return `${API_BASE_URL}${foto}`;
+};
+
 export const equipaAPI = {
   // GET - Buscar todos os membros
   getAllMembros: async (token) => {
@@ -73,24 +96,80 @@ export const equipaAPI = {
       let equipa = [];
       if (Array.isArray(result)) {
         equipa = result;
+        console.log("✅ Formato: Array direto");
       } else if (result.equipa && Array.isArray(result.equipa)) {
         equipa = result.equipa;
+        console.log("✅ Formato: { equipa: [] }");
       } else if (result.data && Array.isArray(result.data)) {
         equipa = result.data;
+        console.log("✅ Formato: { data: [] }");
       } else if (result.membros && Array.isArray(result.membros)) {
         equipa = result.membros;
+        console.log("✅ Formato: { membros: [] }");
+      } else if (result.success && result.data && Array.isArray(result.data)) {
+        equipa = result.data;
+        console.log("✅ Formato: { success: true, data: [] }");
+      } else if (result.success && result.data && result.data.equipa && Array.isArray(result.data.equipa)) {
+        equipa = result.data.equipa;
+        console.log("✅ Formato: { success: true, data: { equipa: [] } }");
+      } else {
+        // Busca recursiva
+        const findArrayDeep = (obj, depth = 0) => {
+          if (depth > 5) return null;
+          if (!obj || typeof obj !== 'object') return null;
+          
+          for (const key in obj) {
+            if (Array.isArray(obj[key]) && obj[key].length > 0) {
+              console.log(`✅ Array encontrado em '${key}'`);
+              return obj[key];
+            }
+            if (obj[key] && typeof obj[key] === 'object') {
+              const found = findArrayDeep(obj[key], depth + 1);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        
+        const foundArray = findArrayDeep(result);
+        if (foundArray && Array.isArray(foundArray)) {
+          equipa = foundArray;
+          console.log(`✅ Array encontrado com ${equipa.length} membros`);
+        }
       }
       
-      if (equipa.length > 0) {
-        saveToLocalStorage(equipa);
-        return equipa;
+      // Processar as fotos para URLs completas
+      const equipaComFotos = equipa.map(membro => ({
+        ...membro,
+        fotoUrl: getFotoUrlCompleta(membro.foto),
+        fotoOriginal: membro.foto
+      }));
+      
+      console.log(`✅ ${equipaComFotos.length} membros carregados`);
+      
+      if (equipaComFotos.length > 0) {
+        console.log("📋 Primeiro membro:", equipaComFotos[0]);
+        saveToLocalStorage(equipaComFotos);
+        return equipaComFotos;
       }
       
-      return loadFromLocalStorage();
+      console.log("⚠️ Usando dados do localStorage");
+      const localData = loadFromLocalStorage();
+      // Processar fotos dos dados locais também
+      return localData.map(membro => ({
+        ...membro,
+        fotoUrl: getFotoUrlCompleta(membro.foto),
+        fotoOriginal: membro.foto
+      }));
       
     } catch (error) {
       console.error("❌ Erro ao carregar membros:", error);
-      return loadFromLocalStorage();
+      const localData = loadFromLocalStorage();
+      return localData.map(membro => ({
+        ...membro,
+        fotoUrl: getFotoUrlCompleta(membro.foto),
+        fotoOriginal: membro.foto
+      }));
     }
   },
   
@@ -145,12 +224,19 @@ export const equipaAPI = {
       
       const newMembro = result.membro || result.data || result;
       
+      // Adicionar URL da foto
+      const newMembroComFoto = {
+        ...newMembro,
+        fotoUrl: getFotoUrlCompleta(newMembro.foto),
+        fotoOriginal: newMembro.foto
+      };
+      
       // Salvar no localStorage como backup
       const equipa = loadFromLocalStorage();
-      equipa.push(newMembro);
+      equipa.push(newMembroComFoto);
       saveToLocalStorage(equipa);
       
-      return newMembro;
+      return newMembroComFoto;
       
     } catch (error) {
       console.error("❌ Erro ao criar membro:", error);
@@ -203,15 +289,22 @@ export const equipaAPI = {
       
       const updatedMembro = result.membro || result.data || result;
       
+      // Adicionar URL da foto
+      const updatedMembroComFoto = {
+        ...updatedMembro,
+        fotoUrl: getFotoUrlCompleta(updatedMembro.foto),
+        fotoOriginal: updatedMembro.foto
+      };
+      
       // Atualizar localStorage
       const equipa = loadFromLocalStorage();
       const index = equipa.findIndex(m => m.id === parseInt(id) || m.id === id);
       if (index !== -1) {
-        equipa[index] = { ...equipa[index], ...updatedMembro };
+        equipa[index] = { ...equipa[index], ...updatedMembroComFoto };
         saveToLocalStorage(equipa);
       }
       
-      return updatedMembro;
+      return updatedMembroComFoto;
       
     } catch (error) {
       console.error("❌ Erro ao atualizar membro:", error);
@@ -256,6 +349,11 @@ export const equipaAPI = {
       console.error("❌ Erro ao deletar membro:", error);
       throw error;
     }
+  },
+  
+  // Função auxiliar para obter URL da foto (pública)
+  getFotoUrl: (foto) => {
+    return getFotoUrlCompleta(foto);
   },
   
   checkServerStatus: async () => {
