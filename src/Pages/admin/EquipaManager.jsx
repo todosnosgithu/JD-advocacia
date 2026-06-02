@@ -1,4 +1,3 @@
-// src/Admin/EquipaManager.jsx
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,10 +10,12 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
-  Upload
+  Upload,
+  Image as ImageIcon
 } from "lucide-react";
 import { equipaAPI } from "../services/equipaAPI";
 import { auth } from "./auth";
+import { API_BASE_URL } from "../config/api";
 import "./EquipaManager.css";
 
 export default function EquipaManager() {
@@ -28,10 +29,13 @@ export default function EquipaManager() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [imageFile, setImageFile] = useState(null);
   const [formData, setFormData] = useState({
     nome: "",
     especialidade: "",
-    foto: ""
+    email: "",
+    telefone: "",
+    bio: ""
   });
 
   const token = auth.getToken();
@@ -49,56 +53,13 @@ export default function EquipaManager() {
       setLoading(true);
       setError(null);
       
-      // Tentar carregar da API primeiro
-      let data = [];
-      try {
-        data = await equipaAPI.getAllMembros(token);
-        console.log("Membros carregados da API:", data);
-      } catch (apiError) {
-        console.error("Erro na API, usando localStorage:", apiError);
-        // Fallback para localStorage
-        const stored = localStorage.getItem("equipa_membros");
-        if (stored) {
-          data = JSON.parse(stored);
-        } else {
-          // Dados mockados iniciais
-          data = [
-            {
-              id: 1,
-              nome: "Dr. António Fulano",
-              especialidade: "Sócio Fundador | Direito Comercial",
-              foto: "",
-              createdAt: new Date().toISOString()
-            },
-            {
-              id: 2,
-              nome: "Dra. Mariana Silva",
-              especialidade: "Direito Civil e Família",
-              foto: "",
-              createdAt: new Date().toISOString()
-            },
-            {
-              id: 3,
-              nome: "Dr. Carlos Mendes",
-              especialidade: "Direito do Trabalho",
-              foto: "",
-              createdAt: new Date().toISOString()
-            }
-          ];
-        }
-      }
+      const data = await equipaAPI.getAllMembros(token);
+      console.log("Membros carregados:", data);
       
       setMembros(Array.isArray(data) ? data : []);
-      localStorage.setItem("equipa_membros", JSON.stringify(data));
     } catch (error) {
       console.error("Erro ao carregar membros:", error);
-      const stored = localStorage.getItem("equipa_membros");
-      if (stored) {
-        setMembros(JSON.parse(stored));
-      } else {
-        setMembros([]);
-      }
-      setError("Erro ao conectar com servidor. Usando dados locais.");
+      setError(error.message || "Erro ao carregar membros");
       setTimeout(() => setError(null), 5000);
     } finally {
       setLoading(false);
@@ -122,19 +83,34 @@ export default function EquipaManager() {
     setFormData({
       nome: "",
       especialidade: "",
-      foto: ""
+      email: "",
+      telefone: "",
+      bio: ""
     });
     setImagePreview("");
+    setImageFile(null);
     setEditingMembro(null);
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setError("A imagem não pode exceder 2MB.");
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        setError("Por favor, selecione uma imagem válida.");
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+      
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
-        setFormData({ ...formData, foto: reader.result });
       };
       reader.readAsDataURL(file);
     }
@@ -153,41 +129,15 @@ export default function EquipaManager() {
     setError(null);
 
     try {
-      let updated;
-      
       if (editingMembro) {
-        // Atualizar membro existente
-        updated = membros.map(m =>
-          m.id === editingMembro.id 
-            ? { ...m, ...formData, updatedAt: new Date().toISOString() }
-            : m
-        );
+        await equipaAPI.updateMembro(editingMembro.id, formData, token, imageFile);
         setSuccess("Membro atualizado com sucesso!");
       } else {
-        // Criar novo membro
-        const newMembro = {
-          id: Date.now(),
-          ...formData,
-          createdAt: new Date().toISOString()
-        };
-        updated = [...membros, newMembro];
+        await equipaAPI.createMembro(formData, token, imageFile);
         setSuccess("Membro adicionado com sucesso!");
       }
       
-      // Salvar no localStorage
-      setMembros(updated);
-      localStorage.setItem("equipa_membros", JSON.stringify(updated));
-      
-      // Tentar salvar na API (opcional, não bloqueia)
-      try {
-        if (editingMembro) {
-          await equipaAPI.updateMembro(editingMembro.id, formData, token);
-        } else {
-          await equipaAPI.createMembro(formData, token);
-        }
-      } catch (apiError) {
-        console.log("API offline, dados salvos apenas localmente");
-      }
+      await loadMembros();
       
       setTimeout(() => setSuccess(null), 3000);
       setShowModal(false);
@@ -202,21 +152,12 @@ export default function EquipaManager() {
   };
 
   const deleteMembro = async (id) => {
-    if (!window.confirm("Tem certeza que deseja eliminar este membro da equipa?")) return;
+    if (!window.confirm("Tem certeza que deseja eliminar este membro?")) return;
     
     try {
-      const filtered = membros.filter(m => m.id !== id);
-      setMembros(filtered);
-      localStorage.setItem("equipa_membros", JSON.stringify(filtered));
+      await equipaAPI.deleteMembro(id, token);
       setSuccess("Membro eliminado com sucesso!");
-      
-      // Tentar deletar da API
-      try {
-        await equipaAPI.deleteMembro(id, token);
-      } catch (apiError) {
-        console.log("API offline, dados removidos apenas localmente");
-      }
-      
+      await loadMembros();
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error("Erro ao deletar membro:", error);
@@ -228,16 +169,44 @@ export default function EquipaManager() {
   const editMembro = (membro) => {
     setEditingMembro(membro);
     setFormData({
-      nome: membro.nome,
-      especialidade: membro.especialidade,
-      foto: membro.foto || ""
+      nome: membro.nome || "",
+      especialidade: membro.especialidade || "",
+      email: membro.email || "",
+      telefone: membro.telefone || "",
+      bio: membro.bio || ""
     });
-    setImagePreview(membro.foto || "");
+    
+    if (membro.foto) {
+      const fotoUrl = membro.foto.startsWith('http') ? membro.foto : `${API_BASE_URL}${membro.foto}`;
+      setImagePreview(fotoUrl);
+    } else {
+      setImagePreview("");
+    }
+    setImageFile(null);
     setShowModal(true);
   };
 
-  const stats = {
-    total: membros.length
+  const MembroFoto = ({ foto, nome }) => {
+    const [imgError, setImgError] = useState(false);
+    
+    if (!foto || imgError) {
+      return (
+        <div className="foto-placeholder">
+          <ImageIcon size={32} />
+        </div>
+      );
+    }
+    
+    const imageUrl = foto.startsWith('http') ? foto : `${API_BASE_URL}${foto}`;
+    
+    return (
+      <img 
+        src={imageUrl} 
+        alt={nome}
+        onError={() => setImgError(true)}
+        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+      />
+    );
   };
 
   if (loading) {
@@ -280,7 +249,7 @@ export default function EquipaManager() {
 
       <div className="equipa-stats">
         <div className="stat-item total">
-          <span className="stat-value">{stats.total}</span>
+          <span className="stat-value">{membros.length}</span>
           <span className="stat-label">Membros da Equipa</span>
         </div>
       </div>
@@ -321,13 +290,7 @@ export default function EquipaManager() {
               whileHover={{ y: -5 }}
             >
               <div className="membro-foto">
-                {membro.foto ? (
-                  <img src={membro.foto} alt={membro.nome} />
-                ) : (
-                  <div className="foto-placeholder">
-                    <Users size={32} />
-                  </div>
-                )}
+                <MembroFoto foto={membro.foto} nome={membro.nome} />
               </div>
               <div className="membro-info">
                 <h3>{membro.nome}</h3>
@@ -346,7 +309,6 @@ export default function EquipaManager() {
         )}
       </div>
 
-      {/* Modal */}
       <AnimatePresence>
         {showModal && (
           <motion.div
@@ -394,12 +356,42 @@ export default function EquipaManager() {
                 </div>
 
                 <div className="form-group">
-                  <label>Foto</label>
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Telefone</label>
+                  <input
+                    type="text"
+                    value={formData.telefone}
+                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    placeholder="+244 923 456 789"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Biografia</label>
+                  <textarea
+                    value={formData.bio}
+                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    placeholder="Breve descrição do membro..."
+                    rows="3"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Foto (max 2MB)</label>
                   <div className="foto-upload">
                     <input
                       type="file"
                       id="foto"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/jpg,image/webp"
                       onChange={handleImageChange}
                       style={{ display: "none" }}
                     />
@@ -409,7 +401,7 @@ export default function EquipaManager() {
                       onClick={() => document.getElementById("foto").click()}
                     >
                       <Upload size={16} />
-                      Carregar imagem
+                      {imageFile || imagePreview ? "Trocar imagem" : "Carregar imagem"}
                     </button>
                     {imagePreview && (
                       <div className="foto-preview">
@@ -419,7 +411,7 @@ export default function EquipaManager() {
                           className="remove-foto"
                           onClick={() => {
                             setImagePreview("");
-                            setFormData({ ...formData, foto: "" });
+                            setImageFile(null);
                           }}
                         >
                           <X size={14} />
@@ -427,15 +419,8 @@ export default function EquipaManager() {
                       </div>
                     )}
                   </div>
-                  <small>Formatos: PNG, JPG, JPEG. Tamanho máximo: 2MB</small>
+                  <small>Formatos: JPG, PNG, WEBP. Máximo: 2MB</small>
                 </div>
-
-                {error && (
-                  <div className="form-error">
-                    <AlertCircle size={16} />
-                    {error}
-                  </div>
-                )}
 
                 <div className="modal-actions">
                   <button type="button" className="cancel-btn" onClick={() => setShowModal(false)}>

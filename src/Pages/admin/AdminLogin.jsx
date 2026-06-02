@@ -34,12 +34,17 @@ export default function AdminLogin({ onLogin }) {
       const response = await usuariosAPI.login({ email, senha: senha });
       
       if (response.token && response.token.trim() !== "") {
-        auth.setLoginData(response.token, response.user);
+        // Salvar token no localStorage
+        localStorage.setItem("admin_token", response.token);
+        localStorage.setItem("adminToken", response.token);
+        localStorage.setItem("admin_logged_in", "true");
+        localStorage.setItem("admin_login_time", Date.now().toString());
         
-        if (onLogin && typeof onLogin === 'function') {
-          onLogin(true);
+        if (response.user) {
+          localStorage.setItem("admin_user", JSON.stringify(response.user));
         }
         
+        // Redirecionar para o dashboard
         window.location.href = "/admin/dashboard";
       } else {
         setError("Token não recebido. Credenciais inválidas.");

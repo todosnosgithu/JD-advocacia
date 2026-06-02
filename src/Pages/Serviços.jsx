@@ -107,7 +107,7 @@ function Servicos() {
 
   if (loading) {
     return (
-      <div className="servicos-loading">
+      <div className="usuarios-loading">
         <div className="loading-spinner"></div>
         <p>Carregando serviços...</p>
       </div>

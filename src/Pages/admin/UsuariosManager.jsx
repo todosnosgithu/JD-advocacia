@@ -1,4 +1,3 @@
-// src/Admin/UsuariosManager.jsx
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -12,11 +11,9 @@ import {
   Loader2,
   RefreshCw,
   Shield,
-  Mail,
-  Lock,
+  Search,
   Eye,
-  EyeOff,
-  Search
+  EyeOff
 } from "lucide-react";
 import { usuariosAPI } from "../services/usuariosAPI";
 import { auth } from "./auth";
@@ -40,7 +37,10 @@ export default function UsuariosManager() {
     cargo: "admin"
   });
 
-  const token = auth.getToken();
+  // Função para obter token
+  const getToken = () => {
+    return auth.getToken() || localStorage.getItem("admin_token") || localStorage.getItem("adminToken");
+  };
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -54,22 +54,73 @@ export default function UsuariosManager() {
     filterUsuarios();
   }, [searchTerm, usuarios]);
 
+  // CORRIGIDO: loadUsuarios com melhor tratamento de dados
   const loadUsuarios = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const data = await usuariosAPI.getAllUsuarios(token);
-      console.log("Usuários carregados:", data);
+      const token = getToken();
+      console.log("🔍 Carregando usuários...");
       
-      setUsuarios(Array.isArray(data) ? data : []);
-      localStorage.setItem("admin_usuarios", JSON.stringify(data));
+      const data = await usuariosAPI.getAllUsuarios(token);
+      console.log("📦 Dados recebidos:", data);
+      
+      // O getAllUsuarios já retorna um array formatado
+      // Mas vamos garantir que temos um array por segurança
+      let usuariosArray = Array.isArray(data) ? data : [];
+      
+      // Se ainda estiver vazio, tentar extrair de estruturas aninhadas (fallback)
+      if (usuariosArray.length === 0 && data && typeof data === 'object') {
+        console.log("🔍 Tentando extrair array de estrutura aninhada...");
+        
+        const findArrayInObject = (obj, depth = 0) => {
+          if (depth > 5) return null;
+          if (!obj || typeof obj !== 'object') return null;
+          
+          for (const key in obj) {
+            if (Array.isArray(obj[key]) && obj[key].length > 0) {
+              console.log(`✅ Array encontrado em '${key}'`);
+              return obj[key];
+            }
+            if (obj[key] && typeof obj[key] === 'object') {
+              const found = findArrayInObject(obj[key], depth + 1);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        
+        const foundArray = findArrayInObject(data);
+        if (foundArray && Array.isArray(foundArray)) {
+          usuariosArray = foundArray;
+          console.log(`✅ Array aninhado encontrado com ${usuariosArray.length} usuários`);
+        }
+      }
+      
+      // Mapear para formato padronizado
+      const usuariosFormatados = usuariosArray.map(user => ({
+        id: user.id || user._id || user.ID || user.userId,
+        nome: user.nome || user.name || user.fullName || user.full_name || "Sem nome",
+        email: user.email || user.correo || "",
+        cargo: user.cargo || user.role || user.tipo || "admin",
+        ativo: user.ativo !== false,
+        ultimo_login: user.ultimo_login,
+        criado_em: user.criado_em || user.createdAt || user.created_at,
+        createdAt: user.criado_em || user.createdAt || user.created_at
+      }));
+      
+      console.log(`✅ ${usuariosFormatados.length} usuários carregados`);
+      if (usuariosFormatados.length > 0) {
+        console.log("📋 Exemplo de usuário:", usuariosFormatados[0]);
+      }
+      
+      setUsuarios(usuariosFormatados);
+      
     } catch (error) {
-      console.error("Erro ao carregar usuários:", error);
-      const stored = JSON.parse(localStorage.getItem("admin_usuarios") || "[]");
-      setUsuarios(stored);
-      setError("Erro ao conectar com servidor. Mostrando dados locais.");
-      setTimeout(() => setError(null), 5000);
+      console.error("❌ Erro ao carregar usuários:", error);
+      setError(error.message || "Erro ao carregar usuários");
+      setUsuarios([]);
     } finally {
       setLoading(false);
     }
@@ -118,44 +169,17 @@ export default function UsuariosManager() {
     setError(null);
 
     try {
+      const token = getToken();
+      
       if (editingUsuario) {
-        // Atualizar usuário existente
-        const updateData = {
-          nome: formData.nome,
-          email: formData.email,
-          cargo: formData.cargo
-        };
-        if (formData.senha) {
-          updateData.senha = formData.senha;
-        }
-        
-        await usuariosAPI.updateUsuario(editingUsuario.id, updateData, token);
-        
-        const updated = usuarios.map(u =>
-          u.id === editingUsuario.id 
-            ? { ...u, nome: formData.nome, email: formData.email, cargo: formData.cargo }
-            : u
-        );
-        setUsuarios(updated);
-        localStorage.setItem("admin_usuarios", JSON.stringify(updated));
+        await usuariosAPI.updateUsuario(editingUsuario.id, formData, token);
         setSuccess("Usuário atualizado com sucesso!");
       } else {
-        // Criar novo usuário
-        const result = await usuariosAPI.createUsuario(formData, token);
-        
-        const newUsuario = {
-          id: result.id || Date.now(),
-          nome: formData.nome,
-          email: formData.email,
-          cargo: formData.cargo,
-          createdAt: new Date().toISOString()
-        };
-        
-        const updated = [...usuarios, newUsuario];
-        setUsuarios(updated);
-        localStorage.setItem("admin_usuarios", JSON.stringify(updated));
+        await usuariosAPI.createUsuario(formData, token);
         setSuccess("Usuário criado com sucesso!");
       }
+      
+      await loadUsuarios();
       
       setTimeout(() => setSuccess(null), 3000);
       setShowModal(false);
@@ -172,29 +196,24 @@ export default function UsuariosManager() {
   const deleteUsuario = async (id) => {
     if (!window.confirm("Tem certeza que deseja eliminar este usuário?")) return;
     
-    setSaving(true);
     try {
+      const token = getToken();
       await usuariosAPI.deleteUsuario(id, token);
-      
-      const filtered = usuarios.filter(u => u.id !== id);
-      setUsuarios(filtered);
-      localStorage.setItem("admin_usuarios", JSON.stringify(filtered));
       setSuccess("Usuário eliminado com sucesso!");
+      await loadUsuarios();
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error("Erro ao deletar usuário:", error);
       setError(error.message || "Erro ao deletar usuário");
       setTimeout(() => setError(null), 3000);
-    } finally {
-      setSaving(false);
     }
   };
 
   const editUsuario = (usuario) => {
     setEditingUsuario(usuario);
     setFormData({
-      nome: usuario.nome,
-      email: usuario.email,
+      nome: usuario.nome || "",
+      email: usuario.email || "",
       senha: "",
       cargo: usuario.cargo || "admin"
     });
@@ -291,7 +310,15 @@ export default function UsuariosManager() {
             {filteredUsuarios.length === 0 ? (
               <tr>
                 <td colSpan="6" className="no-data">
-                  Nenhum usuário encontrado
+                  {searchTerm ? "Nenhum usuário encontrado" : "Nenhum usuário cadastrado"}
+                  {!searchTerm && usuarios.length === 0 && (
+                    <button 
+                      onClick={() => setShowModal(true)} 
+                      className="add-first-btn"
+                    >
+                      Adicionar primeiro usuário
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (
@@ -307,7 +334,7 @@ export default function UsuariosManager() {
                     </span>
                   </td>
                   <td>
-                    {new Date(user.createdAt || user.data_criacao).toLocaleDateString("pt-PT")}
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString("pt-PT") : "-"}
                   </td>
                   <td className="actions-cell">
                     <button
@@ -411,13 +438,6 @@ export default function UsuariosManager() {
                     <option value="admin">Administrador</option>
                   </select>
                 </div>
-
-                {error && (
-                  <div className="form-error">
-                    <AlertCircle size={16} />
-                    {error}
-                  </div>
-                )}
 
                 <div className="modal-actions">
                   <button type="button" className="cancel-btn" onClick={() => setShowModal(false)}>

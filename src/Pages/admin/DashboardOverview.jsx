@@ -15,7 +15,7 @@ import { contactoAPI } from "../services/contactoAPI";
 import { auth } from "./auth";
 import "./DashboardOverview.css";
 
-const StatCard = ({ title, value, icon: Icon, trend, color, subtitle, link, onClick }) => {
+const StatCard = ({ title, value, icon: Icon, trend, color, link, onClick }) => {
   const navigate = useNavigate();
   
   const handleClick = () => {
@@ -45,7 +45,6 @@ const StatCard = ({ title, value, icon: Icon, trend, color, subtitle, link, onCl
       </div>
       <div className="stat-value">{value}</div>
       <div className="stat-title">{title}</div>
-      {subtitle && <div className="stat-subtitle">{subtitle}</div>}
     </motion.div>
   );
 };
@@ -395,7 +394,6 @@ export default function DashboardOverview() {
           icon={Users} 
           trend={stats.crescimentoPercentual} 
           color="blue" 
-          subtitle={`+${stats.novosUsuariosPeriodo} neste período`} 
           link="/admin/usuarios" 
         />
         <StatCard 
@@ -403,7 +401,6 @@ export default function DashboardOverview() {
           value={stats.totalEquipa} 
           icon={Briefcase} 
           color="green" 
-          subtitle="Equipa ativa" 
           link="/admin/equipa" 
         />
         <StatCard 
@@ -411,7 +408,6 @@ export default function DashboardOverview() {
           value={stats.totalServicos} 
           icon={Star} 
           color="purple" 
-          subtitle="Disponíveis" 
           link="/admin/servicos" 
         />
         <StatCard 
@@ -419,7 +415,6 @@ export default function DashboardOverview() {
           value={stats.totalAgendamentos} 
           icon={MessageSquare} 
           color="orange" 
-          subtitle={`${stats.mensagensNaoLidas} não lidas`} 
           link="/admin/mensagens" 
         />
       </div>
@@ -431,7 +426,6 @@ export default function DashboardOverview() {
           value={stats.candidaturasPendentes} 
           icon={FileText} 
           color="orange" 
-          subtitle="Aguardando revisão" 
           link="/admin/candidaturas" 
         />
         <StatCard 
@@ -439,7 +433,6 @@ export default function DashboardOverview() {
           value={stats.usuariosAtivos} 
           icon={UserCheck} 
           color="green" 
-          subtitle={`${stats.usuariosInativos} inativos`} 
           link="/admin/usuarios" 
         />
       </div>
@@ -471,7 +464,7 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      {/* Footer Stats */}
+      {/* Footer Stats - SEM SUBTÍTULOS */}
       <div className="footer-stats">
         <div className="footer-stat-card" onClick={() => navigate("/admin/configuracoes")}>
           <div className="footer-stat-icon blue"><Shield size={18} /></div>

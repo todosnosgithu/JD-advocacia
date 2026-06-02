@@ -1,30 +1,5 @@
-// src/services/usuariosAPI.js
 import { API_BASE_URL, getAuthToken } from "../config/api";
 import { auth } from "../admin/auth";
-
-const handleResponse = async (response) => {
-  if (response.status === 401) {
-    auth.logout();
-    throw new Error("Não autenticado. Faça login novamente.");
-  }
-
-  // Verificar se a resposta está vazia
-  const text = await response.text();
-  if (!text) {
-    throw new Error("Resposta vazia do servidor");
-  }
-
-  try {
-    const result = JSON.parse(text);
-    if (!response.ok) {
-      throw new Error(result.message || result.error || "Erro na requisição");
-    }
-    return result;
-  } catch (e) {
-    console.error("Erro ao fazer parse da resposta:", e);
-    throw new Error("Resposta inválida do servidor");
-  }
-};
 
 export const usuariosAPI = {
   // Login de usuário
@@ -45,79 +20,54 @@ export const usuariosAPI = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Credenciais inválidas");
+        throw new Error(errorData.message || errorData.error || "Credenciais inválidas");
       }
 
       const data = await response.json();
-      console.log("✅ Login bem-sucedido");
+      console.log("✅ Login bem-sucedido, resposta:", data);
       
-      if (!data.token || data.token.trim() === "") {
+      // Extrair token (suporta diferentes formatos)
+      const token = data.token || data.accessToken || data.access_token;
+      
+      if (!token) {
+        console.error("Token não encontrado na resposta:", data);
         throw new Error("Token não recebido do servidor");
       }
 
-      // Salvar token nos dois formatos para compatibilidade
-      localStorage.setItem("admin_token", data.token);
-      localStorage.setItem("adminToken", data.token);
+      // Salvar token
+      localStorage.setItem("admin_token", token);
+      localStorage.setItem("adminToken", token);
       localStorage.setItem("admin_logged_in", "true");
       localStorage.setItem("admin_login_time", Date.now().toString());
       
-      if (data.user) {
-        localStorage.setItem("admin_user", JSON.stringify(data.user));
+      // Salvar dados do usuário logado
+      const user = data.user || data.usuario || data.data;
+      if (user) {
+        localStorage.setItem("admin_user", JSON.stringify(user));
+        console.log("👤 Usuário logado salvo:", user);
       }
 
-      return { token: data.token, user: data.user };
+      return { token, user };
     } catch (error) {
       console.error("❌ Erro no login:", error);
-      throw new Error(error.message || "Erro ao conectar com o servidor. Verifique sua conexão.");
+      throw new Error(error.message || "Erro ao conectar com o servidor.");
     }
   },
 
-  // Testar conexão com a API
-  testConnection: async () => {
-    try {
-      console.log("🔄 Testando conexão com a API...");
-      const response = await fetch(`${API_BASE_URL}/api/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      console.log("📡 Health check status:", response.status);
-      return response.ok;
-    } catch (error) {
-      console.error("❌ Conexão falhou:", error);
-      return false;
-    }
-  },
-
-  // Admin: Buscar todos os usuários - VERSÃO OTIMIZADA
+  // Buscar todos os usuários - CORRIGIDO
   getAllUsuarios: async (token) => {
     try {
-      // Tentar obter token de diferentes fontes
-      let authToken = token || getAuthToken();
+      const authToken = token || getAuthToken();
       
-      // Se ainda não tem token, tentar buscar do localStorage diretamente
-      if (!authToken) {
-        authToken = localStorage.getItem("admin_token") || localStorage.getItem("adminToken");
-      }
+      console.log("🔍 getAllUsuarios - Token:", authToken ? `${authToken.substring(0, 30)}...` : "Nenhum");
       
-      console.log("🔑 Token de autenticação:", authToken ? `Presente (${authToken.substring(0, 20)}...)` : "Ausente");
-      console.log("🔐 Usuário autenticado:", auth.isAuthenticated());
-
       if (!authToken) {
-        console.warn("⚠️ Token não encontrado");
-        throw new Error("Token de autenticação não encontrado. Faça login novamente.");
-      }
-
-      if (!auth.isAuthenticated()) {
-        console.warn("⚠️ Usuário não autenticado");
-        auth.logout();
-        throw new Error("Não autenticado. Faça login novamente.");
+        throw new Error("Token de autenticação não encontrado");
       }
 
       const url = `${API_BASE_URL}/api/admin/usuarios`;
-      console.log("🌐 Buscando usuários em:", url);
-
+      console.log("📡 GET:", url);
+      
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -128,11 +78,10 @@ export const usuariosAPI = {
       });
 
       console.log("📡 Status da resposta:", response.status);
-      console.log("📡 Headers:", Object.fromEntries(response.headers.entries()));
 
-      if (response.status === 404) {
-        console.error("❌ Endpoint não encontrado. Verifique se a rota /api/admin/usuarios existe no backend.");
-        throw new Error("Endpoint de usuários não encontrado. Verifique a configuração do backend.");
+      if (response.status === 401) {
+        auth.logout();
+        throw new Error("Sessão expirada. Faça login novamente.");
       }
 
       if (!response.ok) {
@@ -142,93 +91,108 @@ export const usuariosAPI = {
       }
 
       const result = await response.json();
-      console.log("📦 Dados recebidos da API (tipo):", typeof result);
-      console.log("📦 Dados recebidos da API:", JSON.stringify(result).substring(0, 500));
+      console.log("📦 Resposta completa da API:", JSON.stringify(result, null, 2));
 
-      // Extrair array de usuários - suporta diferentes formatos de resposta
-      let usuarios = [];
+      // EXTRAIR ARRAY DE USUÁRIOS - CORREÇÃO PRINCIPAL
+      let usuariosArray = [];
       
-      // Lista de possíveis chaves que podem conter o array de usuários
-      const possibleKeys = ['usuarios', 'users', 'data', 'items', 'results', 'records', 'lista', 'list'];
-      
-      for (const key of possibleKeys) {
-        if (result[key] && Array.isArray(result[key])) {
-          usuarios = result[key];
-          console.log(`✅ Usuários encontrados na chave '${key}':`, usuarios.length);
-          break;
-        }
+      // CASO 1: { success: true, data: { error: false, data: [...] } }
+      if (result.success && result.data && result.data.data && Array.isArray(result.data.data)) {
+        usuariosArray = result.data.data;
+        console.log("✅ Formato: { success: true, data: { data: [] } }");
       }
-      
-      // Se não encontrou em nenhuma chave específica, verificar se o resultado é um array
-      if (usuarios.length === 0 && Array.isArray(result)) {
-        usuarios = result;
-        console.log("✅ Usuários encontrados no array raiz:", usuarios.length);
+      // CASO 2: { data: { data: [...] } }
+      else if (result.data && result.data.data && Array.isArray(result.data.data)) {
+        usuariosArray = result.data.data;
+        console.log("✅ Formato: { data: { data: [] } }");
       }
-      
-      // Se ainda não encontrou, procurar qualquer array no objeto
-      if (usuarios.length === 0 && typeof result === 'object') {
-        for (const key in result) {
-          if (Array.isArray(result[key]) && result[key].length > 0) {
-            usuarios = result[key];
-            console.log(`✅ Usuários encontrados na chave '${key}':`, usuarios.length);
-            break;
+      // CASO 3: { data: [...] }
+      else if (result.data && Array.isArray(result.data)) {
+        usuariosArray = result.data;
+        console.log("✅ Formato: { data: [] }");
+      }
+      // CASO 4: Array direto
+      else if (Array.isArray(result)) {
+        usuariosArray = result;
+        console.log("✅ Formato: Array direto");
+      }
+      // CASO 5: { usuarios: [] }
+      else if (result.usuarios && Array.isArray(result.usuarios)) {
+        usuariosArray = result.usuarios;
+        console.log("✅ Formato: { usuarios: [] }");
+      }
+      // CASO 6: { users: [] }
+      else if (result.users && Array.isArray(result.users)) {
+        usuariosArray = result.users;
+        console.log("✅ Formato: { users: [] }");
+      }
+      // CASO 7: Busca recursiva em estruturas aninhadas
+      else {
+        const findArrayDeep = (obj, depth = 0) => {
+          if (depth > 5) return null;
+          if (!obj || typeof obj !== 'object') return null;
+          
+          for (const key in obj) {
+            if (Array.isArray(obj[key]) && obj[key].length > 0) {
+              console.log(`✅ Formato: { ${key}: [] } (nível ${depth})`);
+              return obj[key];
+            }
+            if (obj[key] && typeof obj[key] === 'object') {
+              const found = findArrayDeep(obj[key], depth + 1);
+              if (found) return found;
+            }
           }
+          return null;
+        };
+        
+        const foundArray = findArrayDeep(result);
+        if (foundArray && Array.isArray(foundArray)) {
+          usuariosArray = foundArray;
+          console.log(`✅ Array encontrado com ${usuariosArray.length} usuários`);
+        } else {
+          console.warn("⚠️ Nenhum usuário encontrado na resposta");
         }
       }
       
-      // Se não encontrou nenhum usuário mas tem a propriedade 'total' ou 'count'
-      if (usuarios.length === 0 && result.total === 0) {
-        console.log("ℹ️ Nenhum usuário encontrado (total = 0)");
-        return [];
-      }
-      
-      // Se encontrou dados mas não é array, tentar converter
-      if (usuarios.length === 0 && result.usuario) {
-        usuarios = [result.usuario];
-        console.log("✅ Usuário único encontrado:", usuarios.length);
-      }
-      
-      // Garantir que cada usuário tenha os campos necessários
-      usuarios = usuarios.map(user => ({
-        id: user.id || user._id || user.ID,
+      // Mapear para formato padronizado
+      const usuariosFormatados = usuariosArray.map(user => ({
+        id: user.id || user._id || user.ID || user.userId,
         nome: user.nome || user.name || user.fullName || user.full_name || "Sem nome",
         email: user.email || user.correo || "",
-        cargo: user.cargo || user.role || user.tipo || user.type || "user",
-        ativo: user.ativo !== false && user.active !== false && user.status !== "inactive",
-        createdAt: user.createdAt || user.created_at || user.dateCreated || user.created || new Date().toISOString(),
-        // Manter dados originais também
-        ...user
+        cargo: user.cargo || user.role || user.tipo || "admin",
+        ativo: user.ativo !== false,
+        ultimo_login: user.ultimo_login,
+        criado_em: user.criado_em || user.createdAt || user.created_at,
+        createdAt: user.criado_em || user.createdAt || user.created_at
       }));
       
-      // Filtrar usuários inválidos
-      usuarios = usuarios.filter(u => u.id && u.nome);
+      console.log(`✅ Total de usuários carregados: ${usuariosFormatados.length}`);
       
-      console.log("🎯 Total de usuários processados:", usuarios.length);
-      console.log("📋 Primeiros usuários:", usuarios.slice(0, 3).map(u => ({ id: u.id, nome: u.nome, email: u.email })));
+      if (usuariosFormatados.length > 0) {
+        console.log("📋 Primeiro usuário:", usuariosFormatados[0]);
+      } else {
+        console.warn("⚠️ Nenhum usuário encontrado na resposta");
+      }
       
-      return usuarios;
+      return usuariosFormatados;
       
     } catch (error) {
       console.error("❌ Erro ao carregar usuários:", error);
-      console.error("Stack trace:", error.stack);
-      throw new Error(error.message || "Não foi possível carregar os usuários do servidor.");
+      throw error;
     }
   },
 
-  // Admin: Buscar usuário por ID
+  // Buscar usuário por ID
   getUsuarioById: async (id, token) => {
     try {
-      let authToken = token || getAuthToken();
-      if (!authToken) {
-        authToken = localStorage.getItem("admin_token") || localStorage.getItem("adminToken");
-      }
+      const authToken = token || getAuthToken();
       
-      console.log(`🔍 Buscando usuário ID: ${id}`);
-
       if (!authToken) {
         throw new Error("Token de autenticação não encontrado");
       }
 
+      console.log(`📡 GET /api/admin/usuarios/${id}`);
+      
       const response = await fetch(`${API_BASE_URL}/api/admin/usuarios/${id}`, {
         method: "GET",
         headers: {
@@ -237,85 +201,80 @@ export const usuariosAPI = {
         },
       });
 
-      if (response.status === 404) {
-        throw new Error("Usuário não encontrado");
-      }
-
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}`);
       }
 
       const result = await response.json();
-      console.log("📦 Usuário encontrado:", result);
-      
-      // Extrair dados do usuário
       const usuario = result.usuario || result.data || result;
+      
       return usuario;
       
     } catch (error) {
-      console.error("❌ Erro ao carregar usuário:", error);
-      throw new Error(error.message || "Não foi possível carregar os dados do usuário.");
+      console.error("❌ Erro ao buscar usuário:", error);
+      throw error;
     }
   },
 
-  // Admin: Criar novo usuário
+  // Criar novo usuário
   createUsuario: async (data, token) => {
     try {
-      let authToken = token || getAuthToken();
-      if (!authToken) {
-        authToken = localStorage.getItem("admin_token") || localStorage.getItem("adminToken");
-      }
+      const authToken = token || getAuthToken();
       
-      console.log("➕ Criando novo usuário:", data.email);
-
       if (!authToken) {
         throw new Error("Token de autenticação não encontrado");
       }
 
+      console.log("📡 POST /api/admin/usuarios");
+      console.log("📦 Dados:", { nome: data.nome, email: data.email });
+      
       const response = await fetch(`${API_BASE_URL}/api/admin/usuarios`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${authToken}`,
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          nome: data.nome,
+          email: data.email,
+          senha: data.senha,
+          cargo: data.cargo || "admin"
+        }),
       });
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || "Erro ao criar usuário");
+        throw new Error(error.message || error.error || "Erro ao criar usuário");
       }
 
       const result = await response.json();
-      console.log("✅ Usuário criado com sucesso:", result);
+      console.log("✅ Usuário criado:", result);
+      
       return result;
       
     } catch (error) {
       console.error("❌ Erro ao criar usuário:", error);
-      throw new Error(error.message || "Não foi possível criar o usuário no servidor.");
+      throw error;
     }
   },
 
-  // Admin: Atualizar usuário
+  // Atualizar usuário
   updateUsuario: async (id, data, token) => {
     try {
-      let authToken = token || getAuthToken();
-      if (!authToken) {
-        authToken = localStorage.getItem("admin_token") || localStorage.getItem("adminToken");
-      }
+      const authToken = token || getAuthToken();
       
-      console.log(`✏️ Atualizando usuário ID: ${id}`);
-
       if (!authToken) {
         throw new Error("Token de autenticação não encontrado");
       }
 
+      console.log(`📡 PUT /api/admin/usuarios/${id}`);
+      
       const updateData = {
         nome: data.nome,
         email: data.email,
-        cargo: data.cargo
+        cargo: data.cargo || "admin"
       };
-
+      
       if (data.senha && data.senha.trim() !== "") {
         updateData.senha = data.senha;
       }
@@ -331,33 +290,31 @@ export const usuariosAPI = {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || "Erro ao atualizar usuário");
+        throw new Error(error.message || error.error || "Erro ao atualizar usuário");
       }
 
       const result = await response.json();
-      console.log("✅ Usuário atualizado com sucesso:", result);
+      console.log("✅ Usuário atualizado:", result);
+      
       return result;
       
     } catch (error) {
       console.error("❌ Erro ao atualizar usuário:", error);
-      throw new Error(error.message || "Não foi possível atualizar o usuário no servidor.");
+      throw error;
     }
   },
 
-  // Admin: Deletar usuário
+  // Deletar usuário
   deleteUsuario: async (id, token) => {
     try {
-      let authToken = token || getAuthToken();
-      if (!authToken) {
-        authToken = localStorage.getItem("admin_token") || localStorage.getItem("adminToken");
-      }
+      const authToken = token || getAuthToken();
       
-      console.log(`🗑️ Deletando usuário ID: ${id}`);
-
       if (!authToken) {
         throw new Error("Token de autenticação não encontrado");
       }
 
+      console.log(`📡 DELETE /api/admin/usuarios/${id}`);
+      
       const response = await fetch(`${API_BASE_URL}/api/admin/usuarios/${id}`, {
         method: "DELETE",
         headers: {
@@ -367,16 +324,17 @@ export const usuariosAPI = {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || "Erro ao deletar usuário");
+        throw new Error(error.message || error.error || "Erro ao deletar usuário");
       }
 
       const result = await response.json();
-      console.log("✅ Usuário deletado com sucesso");
+      console.log("✅ Usuário deletado");
+      
       return result;
       
     } catch (error) {
       console.error("❌ Erro ao deletar usuário:", error);
-      throw new Error(error.message || "Não foi possível deletar o usuário no servidor.");
+      throw error;
     }
   },
 
@@ -394,27 +352,8 @@ export const usuariosAPI = {
       clearTimeout(timeoutId);
       return response.ok;
     } catch (error) {
-      console.warn("⚠️ Servidor não está respondendo:", error.message);
+      console.warn("⚠️ Servidor offline:", error.message);
       return false;
     }
   }
-};
-
-// Função auxiliar para debug
-export const debugAPI = async () => {
-  console.group("🔧 Debug da API");
-  console.log("API_BASE_URL:", API_BASE_URL);
-  console.log("Token no localStorage:", localStorage.getItem("admin_token"));
-  console.log("Token alternativo:", localStorage.getItem("adminToken"));
-  console.log("Usuário autenticado:", auth.isAuthenticated());
-  
-  // Testar conexão
-  try {
-    const healthResponse = await fetch(`${API_BASE_URL}/api/health`);
-    console.log("Health check:", healthResponse.status);
-  } catch (e) {
-    console.error("Health check falhou:", e);
-  }
-  
-  console.groupEnd();
 };

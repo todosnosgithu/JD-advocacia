@@ -1,8 +1,6 @@
-// src/services/equipaAPI.js
 import { API_BASE_URL, getAuthToken } from "../config/api";
 import { auth } from "../admin/auth";
 
-// Chave para localStorage
 const EQUIPA_STORAGE_KEY = "admin_equipa";
 
 // Dados mockados iniciais
@@ -10,26 +8,12 @@ const mockEquipa = [
   {
     id: 1,
     nome: "Dr. António Silva",
-    cargo: "Advogado Sénior",
-    especialidade: "Direito Civil",
+    especialidade: "Advogado Sénior",
     email: "antonio.silva@advoca.com",
     telefone: "+244 923 456 789",
     bio: "Advogado com mais de 15 anos de experiência",
-    foto: "/assets/team/antonio.jpg",
+    foto: null,
     ordem: 1,
-    ativo: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 2,
-    nome: "Dra. Maria Santos",
-    cargo: "Advogada",
-    especialidade: "Direito Familiar",
-    email: "maria.santos@advoca.com",
-    telefone: "+244 923 456 790",
-    bio: "Especialista em direito da família",
-    foto: "/assets/team/maria.jpg",
-    ordem: 2,
     ativo: true,
     createdAt: new Date().toISOString()
   }
@@ -37,40 +21,29 @@ const mockEquipa = [
 
 // Função para carregar dados do localStorage
 const loadFromLocalStorage = () => {
-  const stored = localStorage.getItem(EQUIPA_STORAGE_KEY);
-  if (stored) {
-    return JSON.parse(stored);
+  try {
+    const stored = localStorage.getItem(EQUIPA_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error("Erro ao carregar localStorage:", e);
   }
-  // Inicializar com dados mockados
   localStorage.setItem(EQUIPA_STORAGE_KEY, JSON.stringify(mockEquipa));
   return mockEquipa;
 };
 
 // Função para salvar no localStorage
 const saveToLocalStorage = (data) => {
-  localStorage.setItem(EQUIPA_STORAGE_KEY, JSON.stringify(data));
-};
-
-// Verificar se o servidor está online
-const isServerOnline = async () => {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
-    
-    const response = await fetch(`${API_BASE_URL}/api/health`, {
-      method: 'GET',
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    return response.ok;
-  } catch (error) {
-    return false;
+    localStorage.setItem(EQUIPA_STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error("Erro ao salvar no localStorage:", e);
   }
 };
 
 export const equipaAPI = {
-  // Buscar todos os membros da equipa
+  // GET - Buscar todos os membros
   getAllMembros: async (token) => {
     try {
       const authToken = token || getAuthToken();
@@ -80,8 +53,9 @@ export const equipaAPI = {
         throw new Error("Não autenticado");
       }
 
-      // Tentar buscar da API
+      console.log("📡 GET /api/admin/equipa");
       const response = await fetch(`${API_BASE_URL}/api/admin/equipa`, {
+        method: 'GET',
         headers: {
           "Authorization": `Bearer ${authToken}`,
           "Content-Type": "application/json",
@@ -93,25 +67,35 @@ export const equipaAPI = {
       }
       
       const result = await response.json();
-      const equipa = result.equipa || result.data || result;
+      console.log("✅ Resposta recebida:", result);
       
-      // Se conseguiu dados da API, salva no localStorage como backup
-      if (Array.isArray(equipa) && equipa.length > 0) {
+      // Extrair array de membros (suporta diferentes formatos)
+      let equipa = [];
+      if (Array.isArray(result)) {
+        equipa = result;
+      } else if (result.equipa && Array.isArray(result.equipa)) {
+        equipa = result.equipa;
+      } else if (result.data && Array.isArray(result.data)) {
+        equipa = result.data;
+      } else if (result.membros && Array.isArray(result.membros)) {
+        equipa = result.membros;
+      }
+      
+      if (equipa.length > 0) {
         saveToLocalStorage(equipa);
         return equipa;
       }
       
-      throw new Error("Dados inválidos da API");
+      return loadFromLocalStorage();
       
     } catch (error) {
-      console.error("Erro ao carregar equipa da API, usando localStorage:", error);
-      // Fallback para localStorage
+      console.error("❌ Erro ao carregar membros:", error);
       return loadFromLocalStorage();
     }
   },
   
-  // Buscar membro por ID
-  getMembroById: async (id, token) => {
+  // POST - Criar novo membro com upload de foto
+  createMembro: async (data, token, imageFile) => {
     try {
       const authToken = token || getAuthToken();
       
@@ -120,90 +104,62 @@ export const equipaAPI = {
         throw new Error("Não autenticado");
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/equipa/${id}`, {
-        headers: {
-          "Authorization": `Bearer ${authToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      return await response.json();
-      
-    } catch (error) {
-      console.error("Erro ao buscar membro da API, usando localStorage:", error);
-      // Fallback para localStorage
-      const equipa = loadFromLocalStorage();
-      const membro = equipa.find(m => m.id === parseInt(id));
-      if (!membro) {
-        throw new Error("Membro não encontrado");
-      }
-      return membro;
-    }
-  },
-  
-  // Criar novo membro
-  createMembro: async (data, token) => {
-    try {
-      const authToken = token || getAuthToken();
-      
-      if (!authToken || !auth.isAuthenticated()) {
-        auth.logout();
-        throw new Error("Não autenticado");
+      if (!data.nome || !data.especialidade) {
+        throw new Error("Nome e especialidade são obrigatórios");
       }
 
-      // Validar dados
-      if (!data.nome || !data.cargo) {
-        throw new Error("Nome e cargo são obrigatórios");
+      console.log("📡 POST /api/admin/equipa");
+      console.log("Dados:", { nome: data.nome, especialidade: data.especialidade });
+      console.log("Arquivo:", imageFile ? imageFile.name : "Nenhum");
+      
+      // Criar FormData para envio multipart
+      const formData = new FormData();
+      formData.append('nome', data.nome);
+      formData.append('especialidade', data.especialidade);
+      
+      if (data.email) formData.append('email', data.email);
+      if (data.telefone) formData.append('telefone', data.telefone);
+      if (data.bio) formData.append('bio', data.bio);
+      
+      // Adicionar arquivo de imagem se existir
+      if (imageFile && imageFile instanceof File) {
+        formData.append('foto', imageFile);
       }
-
-      // Tentar criar via API
+      
       const response = await fetch(`${API_BASE_URL}/api/admin/equipa`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": `Bearer ${authToken}`,
         },
-        body: JSON.stringify(data),
+        body: formData,
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const errorText = await response.text();
+        console.error("Erro resposta:", errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
       
       const result = await response.json();
+      console.log("✅ Membro criado:", result);
       
-      // Se conseguiu criar na API, atualiza localStorage
-      const equipa = loadFromLocalStorage();
       const newMembro = result.membro || result.data || result;
+      
+      // Salvar no localStorage como backup
+      const equipa = loadFromLocalStorage();
       equipa.push(newMembro);
       saveToLocalStorage(equipa);
       
       return newMembro;
       
     } catch (error) {
-      console.error("Erro ao criar membro na API, salvando localmente:", error);
-      
-      // Fallback: salvar apenas no localStorage
-      const equipa = loadFromLocalStorage();
-      const newMembro = {
-        id: Date.now(),
-        ...data,
-        createdAt: new Date().toISOString(),
-        ativo: true
-      };
-      equipa.push(newMembro);
-      saveToLocalStorage(equipa);
-      
-      return newMembro;
+      console.error("❌ Erro ao criar membro:", error);
+      throw error;
     }
   },
   
-  // Atualizar membro
-  updateMembro: async (id, data, token) => {
+  // PUT - Atualizar membro com upload de foto
+  updateMembro: async (id, data, token, imageFile) => {
     try {
       const authToken = token || getAuthToken();
       
@@ -212,14 +168,30 @@ export const equipaAPI = {
         throw new Error("Não autenticado");
       }
 
-      // Tentar atualizar via API
+      console.log(`📡 PUT /api/admin/equipa/${id}`);
+      console.log("Dados:", { nome: data.nome, especialidade: data.especialidade });
+      console.log("Arquivo:", imageFile ? imageFile.name : "Nenhum");
+      
+      // Criar FormData para envio multipart
+      const formData = new FormData();
+      formData.append('nome', data.nome);
+      formData.append('especialidade', data.especialidade);
+      
+      if (data.email) formData.append('email', data.email);
+      if (data.telefone) formData.append('telefone', data.telefone);
+      if (data.bio) formData.append('bio', data.bio);
+      
+      // Adicionar nova imagem se existir
+      if (imageFile && imageFile instanceof File) {
+        formData.append('foto', imageFile);
+      }
+      
       const response = await fetch(`${API_BASE_URL}/api/admin/equipa/${id}`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": `Bearer ${authToken}`,
         },
-        body: JSON.stringify(data),
+        body: formData,
       });
       
       if (!response.ok) {
@@ -227,34 +199,27 @@ export const equipaAPI = {
       }
       
       const result = await response.json();
+      console.log("✅ Membro atualizado:", result);
+      
+      const updatedMembro = result.membro || result.data || result;
       
       // Atualizar localStorage
       const equipa = loadFromLocalStorage();
-      const index = equipa.findIndex(m => m.id === parseInt(id));
+      const index = equipa.findIndex(m => m.id === parseInt(id) || m.id === id);
       if (index !== -1) {
-        equipa[index] = { ...equipa[index], ...data };
+        equipa[index] = { ...equipa[index], ...updatedMembro };
         saveToLocalStorage(equipa);
       }
       
-      return result;
+      return updatedMembro;
       
     } catch (error) {
-      console.error("Erro ao atualizar membro na API, atualizando localmente:", error);
-      
-      // Fallback: atualizar apenas no localStorage
-      const equipa = loadFromLocalStorage();
-      const index = equipa.findIndex(m => m.id === parseInt(id));
-      if (index !== -1) {
-        equipa[index] = { ...equipa[index], ...data };
-        saveToLocalStorage(equipa);
-        return { success: true, membro: equipa[index] };
-      }
-      
-      throw new Error("Membro não encontrado");
+      console.error("❌ Erro ao atualizar membro:", error);
+      throw error;
     }
   },
   
-  // Deletar membro
+  // DELETE - Deletar membro
   deleteMembro: async (id, token) => {
     try {
       const authToken = token || getAuthToken();
@@ -264,7 +229,8 @@ export const equipaAPI = {
         throw new Error("Não autenticado");
       }
 
-      // Tentar deletar via API
+      console.log(`📡 DELETE /api/admin/equipa/${id}`);
+      
       const response = await fetch(`${API_BASE_URL}/api/admin/equipa/${id}`, {
         method: "DELETE",
         headers: {
@@ -276,25 +242,34 @@ export const equipaAPI = {
         throw new Error(`HTTP ${response.status}`);
       }
       
+      const result = await response.json();
+      console.log("✅ Membro deletado:", result);
+      
       // Remover do localStorage
       const equipa = loadFromLocalStorage();
-      const filtered = equipa.filter(m => m.id !== parseInt(id));
+      const filtered = equipa.filter(m => m.id !== parseInt(id) && m.id !== id);
       saveToLocalStorage(filtered);
       
-      return await response.json();
+      return result;
       
     } catch (error) {
-      console.error("Erro ao deletar membro na API, deletando localmente:", error);
-      
-      // Fallback: deletar apenas do localStorage
-      const equipa = loadFromLocalStorage();
-      const filtered = equipa.filter(m => m.id !== parseInt(id));
-      saveToLocalStorage(filtered);
-      
-      return { success: true };
+      console.error("❌ Erro ao deletar membro:", error);
+      throw error;
     }
   },
   
-  // Verificar status do servidor
-  checkServerStatus: isServerOnline
+  checkServerStatus: async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const response = await fetch(`${API_BASE_URL}/api/health`, {
+        method: 'GET',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  }
 };
